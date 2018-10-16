@@ -17,7 +17,7 @@ Prueba realizada con los requerimientos solicitados; para ello se utilizó la si
 
   - https://github.com/jorelk19/TestBusquedaEdson.git
  
- # Link apk generadda
+ # Link apk generada
   - https://github.com/jorelk19/TestBusquedaEdson/tree/master/APK
   
 
