@@ -80,7 +80,15 @@ public class SearchEngineView extends AppCompatActivity implements ISearchEngine
     }
 
     public void BuscarTexto(View view){
+        ShowProgressDialog();
         presenter.Buscar(etTextoBuscado.getText().toString(), categoriasSeleccionada);
+    }
+
+    private void ShowProgressDialog() {
+        pDialog = new ProgressDialog(this, AlertDialog.THEME_DEVICE_DEFAULT_DARK);
+        pDialog.setMessage("Procesando información...");
+        pDialog.setCancelable(false);
+        pDialog.show();
     }
 
     @Override
@@ -94,6 +102,11 @@ public class SearchEngineView extends AppCompatActivity implements ISearchEngine
     @Override
     public void MostrarMensaje(String mensaje) {
         Snackbar.make(mainView,mensaje, Snackbar.LENGTH_LONG).show();
+    }
+
+    @Override
+    public void NotificarCierreProgressDialog() {
+        pDialog.dismiss();
     }
 
     private class setOnClickListener_Categoria implements android.widget.AdapterView.OnItemSelectedListener {

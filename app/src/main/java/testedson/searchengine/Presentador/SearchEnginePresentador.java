@@ -51,4 +51,9 @@ public class SearchEnginePresentador implements ISearchEnginePresenter {
     public List<Categoria> ObtenerCategorias() {
         return searchEngineInteractor.ObtenerCategorias();
     }
+
+    @Override
+    public void NotificarCierreProgressDialog() {
+        searchEngineView.NotificarCierreProgressDialog();
+    }
 }

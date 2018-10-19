@@ -35,11 +35,9 @@ import testedson.searchengine.Utilidades.MapperAlbum;
 public class HandlerOffline {
     private Context context;
     SQLiteHandler sqLiteHandler;
-    private ProgressDialog pDialog;
     private List<DatosGrilla> listaDatosGrilla;
-    public HandlerOffline(Context context, ProgressDialog dialog){
+    public HandlerOffline(Context context){
         this.context = context;
-        this.pDialog = dialog;
         sqLiteHandler = new SQLiteHandler(context);
 
     }
@@ -63,7 +61,6 @@ public class HandlerOffline {
         
         listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaAlbum(albumResponse, context);
         presentador.MostrarResultado(listaDatosGrilla);
-        //pDialog.dismiss();
     }
 
     public void ObtenerInformacionTopAlbumsArtist(ISearchEnginePresenter presentador,String data) {
@@ -100,7 +97,6 @@ public class HandlerOffline {
                 item.setUrl(album.getUrl());
             }
             cont++;
-            //Arrays.stream(listaAlbum.toArray()).filter(n -> n. < 3 || n > 7).count();
         }
 
         topAlbums.setTopAlbum(listaTopAlbum);
@@ -108,7 +104,6 @@ public class HandlerOffline {
 
         listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaTopArtist(albumTopResponse, data, context);
         presentador.MostrarResultado(listaDatosGrilla);
-        //pDialog.dismiss();
     }
 
     public void ObtenerInformacionTrack(ISearchEnginePresenter presentador,String data) {
@@ -129,41 +124,6 @@ public class HandlerOffline {
 
         listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaTrack(trackResponse, context);
         presentador.MostrarResultado(listaDatosGrilla);
-        //threadMsgConsulta(true, listaDatosGrilla, presentador);
-
     }
-
-
-    public void threadMsgConsulta(boolean estado, List<DatosGrilla> mensaje, ISearchEnginePresenter presentador) {
-        Message msgObj = HandlerConsulta.obtainMessage();
-        Bundle b = new Bundle();
-        msgObj.setData(b);
-        Gson gson = new Gson();
-        String json = gson.toJson(mensaje);
-        Gson gson1 = new Gson();
-        String json1 = gson1.toJson(presentador);
-
-        b.putBoolean("estadoRespuesta", estado);
-        b.putString("mensaje", json);
-        b.putString("presentador", json1);
-        HandlerConsulta.sendMessage(msgObj);
-    }
-
-    private final Handler HandlerConsulta = new Handler(Looper.getMainLooper()) {
-        @Override
-        public void handleMessage(Message msg) {
-
-            boolean respuesta = msg.getData().getBoolean("estadoRespuesta");
-            int statusCode = msg.getData().getInt("statusCode");
-            String mensaje = msg.getData().getString("mensaje");
-            String presentadorMsj = msg.getData().getString("prresentador");
-            Gson gson = new Gson();
-            List<DatosGrilla> datosGrilla = gson.fromJson(mensaje, new TypeToken<List<DatosGrilla>>(){}.getType());
-            ISearchEnginePresenter presentador = gson.fromJson(presentadorMsj, ISearchEnginePresenter.class);
-
-            pDialog.dismiss();
-
-        }
-    };
 }
 

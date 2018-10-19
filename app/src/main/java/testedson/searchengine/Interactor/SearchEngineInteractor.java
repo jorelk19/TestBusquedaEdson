@@ -24,7 +24,7 @@ public class SearchEngineInteractor implements ISearchEngineInteractor {
     public Context context;
     private RetrofitManager retrofitManager;
     SQLiteHandler sqlHandler;
-    private ProgressDialog pDialog;
+
     Categoria categoria;
     String datoBuscado;
 
@@ -38,24 +38,32 @@ public class SearchEngineInteractor implements ISearchEngineInteractor {
     public void Buscar(String data, Categoria categoriaSeleccionada) {
         categoria = categoriaSeleccionada;
         datoBuscado = data;
+        retrofitManager.setCategoriaSeleccionada(categoria.getIdCategoria());
         if (data.equals("")) {
             searchEnginePresenter.MostrarMensaje("Debe ingresar un dato para poderlo buscar");
         } else {
             if(Util.ValidarAccesoInternet(context)) {
                 try {
-                    pDialog = new ProgressDialog(context, AlertDialog.THEME_DEVICE_DEFAULT_DARK);
-                    pDialog.setMessage("Procesando información...");
-                    pDialog.setCancelable(false);
-                    pDialog.show();
-                    retrofitManager.setpDialog(pDialog);
-                    new Thread(new RunnableEjecutarOnline()).start();
-
+                    switch(categoria.getIdCategoria()) {
+                        case 1:
+                            retrofitManager.ObtenerInformacionAlbum(searchEnginePresenter, datoBuscado);
+                            break;
+                        case 2:
+                            retrofitManager.ObtenerInformacionTopAlbumsArtist(searchEnginePresenter, datoBuscado);
+                            break;
+                        case 3:
+                            retrofitManager.ObtenerInformacionTrack(searchEnginePresenter, datoBuscado);
+                            break;
+                        default:
+                            searchEnginePresenter.MostrarMensaje("Debe seleccionar una categoría");
+                            break;
+                    }
                 } catch (Exception ex) {
                     searchEnginePresenter.MostrarMensaje(ex.getMessage());
                 }
             }
             else{
-                HandlerOffline handler = new HandlerOffline(context, pDialog);
+                HandlerOffline handler = new HandlerOffline(context);
                 switch(categoria.getIdCategoria()) {
                     case 1:
                         handler.ObtenerInformacionAlbum(searchEnginePresenter, datoBuscado);
@@ -76,41 +84,6 @@ public class SearchEngineInteractor implements ISearchEngineInteractor {
         }
     }
 
-    /**********************************************************
-     * **************** Runnable Consultando fecha servidor
-     *****************************************************/
-    private class RunnableEjecutarOnline implements Runnable {
-        @Override
-        public void run() {
-            switch(categoria.getIdCategoria()) {
-                case 1:
-                    retrofitManager.ObtenerInformacionAlbum(searchEnginePresenter, datoBuscado);
-                    break;
-                case 2:
-                    //retrofitManager.ObtenerInformacionArtist(searchEnginePresenter, data);
-                    retrofitManager.ObtenerInformacionTopAlbumsArtist(searchEnginePresenter, datoBuscado);
-                    break;
-                case 3:
-                    retrofitManager.ObtenerInformacionTrack(searchEnginePresenter, datoBuscado);
-                    //retrofitManager.ObtenerInformacionTopTrack(searchEnginePresenter, data);
-                    break;
-                default:
-                    searchEnginePresenter.MostrarMensaje("Debe seleccionar una categoría");
-                    break;
-            }
-        }
-    }
-
-    /**********************************************************
-     * **************** Runnable Consultando fecha servidor
-     *****************************************************/
-    private class RunnableEjecutarOffline implements Runnable {
-        @Override
-        public void run() {
-
-        }
-    }
-
     @Override
     public void CrearBD(Context context) {
         sqlHandler = new SQLiteHandler(context);
@@ -120,5 +93,10 @@ public class SearchEngineInteractor implements ISearchEngineInteractor {
     @Override
     public List<Categoria> ObtenerCategorias() {
         return sqlHandler.ObtenerCategorias();
+    }
+
+    @Override
+    public void NotificarCierreProgressDialog() {
+        searchEnginePresenter.NotificarCierreProgressDialog();
     }
 }

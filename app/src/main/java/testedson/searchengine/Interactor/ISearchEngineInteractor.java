@@ -10,4 +10,5 @@ public interface ISearchEngineInteractor {
     void Buscar(String data, Categoria categoriaSeleccionada);
     void CrearBD(Context context);
     List<Categoria> ObtenerCategorias();
+    void NotificarCierreProgressDialog();
 }

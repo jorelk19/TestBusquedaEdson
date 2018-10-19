@@ -9,4 +9,5 @@ import testedson.searchengine.Controles.DatosGrilla;
 public interface ISearchEngineView {
     void MostrarResultado(List<DatosGrilla> resultado);
     void MostrarMensaje(String mensaje);
+    void NotificarCierreProgressDialog();
 }
