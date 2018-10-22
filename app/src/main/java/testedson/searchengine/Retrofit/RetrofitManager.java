@@ -30,6 +30,7 @@ public class RetrofitManager {
     Response<AlbumTopResponse> serviceTopAlbumResponse;
     Response<AlbumResponse> serviceAlbumResponse;
     Response<TrackResponse> serviceTrackResponse;
+    private String datoBuscado;
 
     List<DatosGrilla> listaDatosGrilla;
     int idCategoriaSeleccionda;
@@ -44,62 +45,60 @@ public class RetrofitManager {
         this.idCategoriaSeleccionda = idCategoria;
     }
 
-    public void ObtenerInformacionAlbum(final ISearchEnginePresenter presentador, String album){
-        this.presenter = presentador;
-        Call<AlbumResponse> resultado = RetrofitClient.getInstance().getAlbumApi().getAlbum(album, Util.ApiKey, Util.Formato);
+    public void ObtenerInformacionAlbum(){
+
+        Call<AlbumResponse> resultado = RetrofitClient.getInstance().getAlbumApi().getAlbum(datoBuscado, Util.ApiKey, Util.Formato);
         resultado.enqueue(new Callback<AlbumResponse>() {
             @Override
             public void onResponse(Call<AlbumResponse> call, Response<AlbumResponse> response) {
-                serviceAlbumResponse = response;
-                new Thread(new RunnableCargarDatosGrilla()).start();
+                listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaAlbum(response.body(), context);
+                threadMsgCargueGrilla(true, "");
             }
 
             @Override
             public void onFailure(Call<AlbumResponse> call, Throwable t) {
                 presenter.MostrarMensaje(t.getMessage());
-                presentador.NotificarCierreProgressDialog();
+                threadMsgCargueGrilla(false, t.getMessage());
             }
         });
     }
 
-    public void ObtenerInformacionTopAlbumsArtist(ISearchEnginePresenter presentador, String artista) {
-        this.presenter = presentador;
-        this.artist = artista;
-        Call<AlbumTopResponse> resultado = RetrofitClient.getInstance().getTopArtistAlbumApi().getTopAlbumsArtist(artist, Util.ApiKey, Util.Formato);
+    public void ObtenerInformacionTopAlbumsArtist() {
+        Call<AlbumTopResponse> resultado = RetrofitClient.getInstance().getTopArtistAlbumApi().getTopAlbumsArtist(datoBuscado, Util.ApiKey, Util.Formato);
         resultado.enqueue(new Callback<AlbumTopResponse>() {
             @Override
             public void onResponse(Call<AlbumTopResponse> call, Response<AlbumTopResponse> response) {
-                serviceTopAlbumResponse = response;
-                new Thread(new RunnableCargarDatosGrilla()).start();
+                listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaTopArtist(response.body(), artist, context);
+                threadMsgCargueGrilla(true, "");
             }
 
             @Override
             public void onFailure(Call<AlbumTopResponse> call, Throwable t) {
-                presenter.MostrarMensaje(t.getMessage());
-                presenter.NotificarCierreProgressDialog();
+                threadMsgCargueGrilla(false, t.getMessage());
             }
         });
     }
 
-    public void ObtenerInformacionTrack(ISearchEnginePresenter presentador, String track) {
-        this.presenter = presentador;
-        Call<TrackResponse> resultado = RetrofitClient.getInstance().getTrackApi().getTrack(track, Util.ApiKey, Util.Formato);
+    public void ObtenerInformacionTrack() {
+        Call<TrackResponse> resultado = RetrofitClient.getInstance().getTrackApi().getTrack(datoBuscado, Util.ApiKey, Util.Formato);
         resultado.enqueue(new Callback<TrackResponse>() {
             @Override
             public void onResponse(Call<TrackResponse> call, Response<TrackResponse> response) {
-                serviceTrackResponse = response;
-                new Thread(new RunnableCargarDatosGrilla()).start();
-
-                presenter.MostrarResultado(listaDatosGrilla);
-                presenter.NotificarCierreProgressDialog();
+                listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaTrack(response.body(), context);
+                threadMsgCargueGrilla(true, "");
             }
 
             @Override
             public void onFailure(Call<TrackResponse> call, Throwable t) {
-                presenter.MostrarMensaje(t.getMessage());
-                presenter.NotificarCierreProgressDialog();
+                threadMsgCargueGrilla(false, t.getMessage());
             }
         });
+    }
+
+    public void ConsultarInformacionOnline(ISearchEnginePresenter searchEnginePresenter, String dato) {
+        this.presenter = searchEnginePresenter;
+        this.datoBuscado = dato;
+        new Thread(new RunnableCargarDatosGrilla()).start();
     }
 
     private class RunnableCargarDatosGrilla implements Runnable {
@@ -107,32 +106,31 @@ public class RetrofitManager {
         public void run() {
             switch(idCategoriaSeleccionda) {
                 case 1:
-                    listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaAlbum(serviceAlbumResponse.body(), context);
+                    ObtenerInformacionAlbum();
                     break;
                 case 2:
-                    listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaTopArtist(serviceTopAlbumResponse.body(), artist, context);
+                    ObtenerInformacionTopAlbumsArtist();
                     break;
                 case 3:
-                    listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaTrack(serviceTrackResponse.body(), context);
+                    ObtenerInformacionTrack();
                     break;
                 default:
-
+                    threadMsgCargueGrilla(false, "Debe seleccionar una categoría");
                     break;
             }
-
-            threadMsgCargueGrilla(true);
         }
     }
 
     /***********************************************************
      * Metodo para notificar que se termino el proceso del hilo
      *******************************************************/
-    private void threadMsgCargueGrilla(boolean estado) {
+    private void threadMsgCargueGrilla(boolean estado, String mensaje) {
         presenter.NotificarCierreProgressDialog();
         Message msg = handlerCargarGrilla.obtainMessage();
         Bundle bundleE = new Bundle();
         msg.setData(bundleE);
         bundleE.putBoolean("estadoCargueGrilla", estado);
+        bundleE.putString("mensaje", mensaje);
         handlerCargarGrilla.sendMessage(msg);
     }
 
@@ -140,55 +138,14 @@ public class RetrofitManager {
         @Override
         public void handleMessage(Message msg) {
             boolean respuesta = msg.getData().getBoolean("estadoCargueGrilla");
+            String mensaje = msg.getData().getString("mensaje");
             if (respuesta) {
                 presenter.MostrarResultado(listaDatosGrilla);
                 presenter.NotificarCierreProgressDialog();
             } else {
+                presenter.MostrarMensaje(mensaje);
                 presenter.NotificarCierreProgressDialog();
             }
         }
     };
-
-    //FUERA DE USO
-    public void ObtenerInformacionArtist(ISearchEnginePresenter presentador, String artist) {
-        this.presenter = presentador;
-        //albumService.getAlbum(album, Util.ApiKey, Util.Formato);
-        Call<ArtistResponse> resultado = RetrofitClient.getInstance().getArtistApi().getArtist(artist, Util.ApiKey, Util.Formato);
-        resultado.enqueue(new Callback<ArtistResponse>() {
-            @Override
-            public void onResponse(Call<ArtistResponse> call, Response<ArtistResponse> response) {
-                List<DatosGrilla> listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaArtist(response.body());
-                presenter.MostrarResultado(listaDatosGrilla);
-                pDialog.dismiss();
-            }
-
-            @Override
-            public void onFailure(Call<ArtistResponse> call, Throwable t) {
-                presenter.MostrarMensaje(t.getMessage());
-                pDialog.dismiss();
-            }
-        });
-    }
-
-
-    //FUERA DE USO
-    public void ObtenerInformacionTopTrack(ISearchEnginePresenter presentador, String artist) {
-        this.presenter = presentador;
-        //albumService.getAlbum(album, Util.ApiKey, Util.Formato);
-        Call<TopTrackResponse> resultado = RetrofitClient.getInstance().getTopTrackApi().getTopTrack(artist, Util.ApiKey, Util.Formato);
-        resultado.enqueue(new Callback<TopTrackResponse>() {
-            @Override
-            public void onResponse(Call<TopTrackResponse> call, Response<TopTrackResponse> response) {
-                List<DatosGrilla> listaDatosGrilla = MapperAlbum.MapperListaDatosGrillaTopTrack(response.body());
-                presenter.MostrarResultado(listaDatosGrilla);
-                pDialog.dismiss();
-            }
-
-            @Override
-            public void onFailure(Call<TopTrackResponse> call, Throwable t) {
-                presenter.MostrarMensaje(t.getMessage());
-                pDialog.dismiss();
-            }
-        });
-    }
 }
